@@ -1,0 +1,343 @@
+/* 基础样式重置 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* 整体页面风格 */
+body {
+    font-family: 'Comic Sans MS', 'Yu Gothic', 'Meiryo', sans-serif;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    background: linear-gradient(135deg, #fff5f7, #e9f4ff);
+    color: #5a3a5e;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* 添加可爱的背景装饰 */
+body::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(255, 200, 221, 0.3) 0px, transparent 50px),
+        radial-gradient(circle at 90% 40%, rgba(189, 224, 254, 0.3) 0px, transparent 60px),
+        radial-gradient(circle at 30% 70%, rgba(255, 223, 186, 0.3) 0px, transparent 70px);
+    z-index: -1;
+}
+
+/* 动漫风格容器 */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+}
+
+.container::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    border: 3px dashed rgba(255, 182, 193, 0.6);
+    border-radius: 20px;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* 头部样式 */
+header {
+    background: linear-gradient(135deg, #ff9ecb, #ff6b9c);
+    color: white;
+    text-align: center;
+    padding: 1.5rem 0;
+    font-size: 2rem;
+    font-weight: bold;
+    box-shadow: 0 6px 12px rgba(255, 107, 156, 0.3);
+    border-radius: 0 0 20px 20px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 添加可爱的装饰 */
+header::before {
+    content: "❀ ❀ ❀";
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.5rem;
+}
+
+header::after {
+    content: "★ ☆ ★";
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.5rem;
+}
+
+/* 导航样式 */
+nav {
+    background: linear-gradient(135deg, #b8e1ff, #7bc6ff);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    padding: 0.8rem 2rem;
+    box-shadow: 0 4px 8px rgba(123, 198, 255, 0.3);
+    border-radius: 15px;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+nav::after {
+    content: "";
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: 15px solid #7bc6ff;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin: 0 1rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 25px;
+    transition: all 0.3s;
+    font-weight: bold;
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+nav a:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 隐藏元素 */
+.hidden {
+    display: none !important;
+    visibility: hidden;
+    opacity: 0;
+}
+
+/* 评论区域 */
+.comments-section {
+    margin-top: 30px;
+    border-top: 3px dotted #ffb6c1;
+    padding-top: 20px;
+}
+
+.comments-list p {
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 15px;
+    border: 2px solid #d4f0ff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    position: relative;
+}
+
+.comments-list p::before {
+    content: "“";
+    position: absolute;
+    top: -20px;
+    left: 10px;
+    font-size: 3rem;
+    color: #ffb6c1;
+    font-family: serif;
+}
+
+/* 输入框 */
+textarea {
+    width: 100%;
+    padding: 15px;
+    margin-top: 15px;
+    resize: vertical;
+    border: 2px solid #d4f0ff;
+    border-radius: 15px;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.8);
+    transition: all 0.3s;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #ff9ecb;
+    box-shadow: 0 0 0 3px rgba(255, 158, 203, 0.3);
+}
+
+/* 按钮 */
+button {
+    background: linear-gradient(135deg, #ff9ecb, #ff6b9c);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    margin-top: 15px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(255, 107, 156, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+button::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -60%;
+    width: 20px;
+    height: 200%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(25deg);
+    transition: all 0.6s;
+}
+
+button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(255, 107, 156, 0.4);
+}
+
+button:hover::after {
+    left: 120%;
+}
+
+/* 内容区域 */
+#home-section, #create-section {
+    padding: 1rem;
+}
+
+.post {
+    background: rgba(255, 255, 255, 0.85);
+    margin: 1.5rem 0;
+    padding: 1.8rem;
+    border: 2px solid #d4f0ff;
+    border-radius: 15px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    position: relative;
+    transition: all 0.3s;
+}
+
+.post:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(123, 198, 255, 0.2);
+}
+
+.post h2 {
+    margin: 0 0 0.8rem;
+    color: #ff6b9c;
+    font-size: 1.8rem;
+    position: relative;
+    display: inline-block;
+}
+
+.post h2::after {
+    content: "";
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(to right, #ff9ecb, #7bc6ff);
+    border-radius: 3px;
+}
+
+/* 模态框 */
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #ffffff, #fff5f7);
+    padding: 30px;
+    border: 3px solid #ffb6c1;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(255, 107, 156, 0.3);
+    z-index: 1000;
+    width: 90%;
+    max-width: 400px;
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+#login-modal, #register-modal, #adminLogin-modal {
+    display: none;
+}
+
+/* 页脚 */
+footer {
+    text-align: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #5a3a5e, #3d2a40);
+    color: white;
+    font-size: 0.9rem;
+    margin-top: 3rem;
+    border-radius: 20px 20px 0 0;
+    position: relative;
+}
+
+footer p {
+    margin: 0;
+}
+
+footer::before {
+    content: "♥ ♥ ♥";
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 1.2rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    nav {
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem;
+    }
+    
+    nav a {
+        margin: 0.5rem 0;
+        width: 80%;
+        text-align: center;
+    }
+    
+    .modal {
+        width: 95%;
+        padding: 20px;
+    }
+    
+    header {
+        font-size: 1.7rem;
+    }
+}

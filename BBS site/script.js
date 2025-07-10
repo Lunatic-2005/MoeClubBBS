@@ -1,501 +1,445 @@
-// Firebase 配置 - 替换为你自己的配置
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-
-// 初始化 Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-const auth = firebase.auth();
-
-// 全局变量
+// 模拟用户数据
+const users = JSON.parse(localStorage.getItem('bbsUsers')) || [];
 let currentUser = null;
-
-// 页面加载时检查登录状态
-window.onload = function() {
-  auth.onAuthStateChanged((user) => {
-    if (user) {
-      // 用户已登录，获取用户信息
-      database.ref('users/' + user.uid).once('value')
-        .then((snapshot) => {
-          const userData = snapshot.val();
-          currentUser = {
-            uid: user.uid,
-            username: userData.username,
-            role: userData.role || 'user',
-            email: user.email
-          };
-          updateNavBar();
-          showSection('home');
-        });
-    } else {
-      // 用户未登录
-      currentUser = null;
-      updateNavBar();
-      showSection('home');
-    }
-  });
-};
 
 // 切换页面
 function showSection(section) {
-  document.getElementById('home-section').classList.add('hidden');
-  document.getElementById('create-section').classList.add('hidden');
-  document.getElementById('admin-section').classList.add('hidden');
+    document.getElementById('home-section').classList.add('hidden');
+    document.getElementById('create-section').classList.add('hidden');
+    document.getElementById('admin-section').classList.add('hidden');
 
-  if (section === 'home') {
-    document.getElementById('home-section').classList.remove('hidden');
-    loadPosts();
-  } else if (section === 'create') {
-    document.getElementById('create-section').classList.remove('hidden');
-  } else if (section === 'admin') {
-    document.getElementById('admin-section').classList.remove('hidden');
-    loadPostsForAdmin();
-    loadUsersForAdmin();
-  }
+    if (section === 'home') {
+        document.getElementById('home-section').classList.remove('hidden');
+        loadPosts();
+    } else if (section === 'create') {
+        document.getElementById('create-section').classList.remove('hidden');
+    } else if (section === 'admin') {
+        document.getElementById('admin-section').classList.remove('hidden');
+        showAdminDashboard();  // 加载管理员内容
+    }
+
+    updateNavBar();
 }
 
 // 加载帖子
 function loadPosts() {
-  const postsContainer = document.getElementById('posts-container');
-  postsContainer.innerHTML = '<p>Loading posts...</p>';
+    const postsContainer = document.getElementById('posts-container');
+    const savedPosts = JSON.parse(localStorage.getItem('bbsPosts')) || [];
+    postsContainer.innerHTML = ''; // 清空现有内容
 
-  database.ref('posts').orderByChild('date').once('value')
-    .then((snapshot) => {
-      const posts = snapshot.val() || {};
-      postsContainer.innerHTML = '';
-
-      // 转换为数组并按日期排序
-      const postsArray = Object.entries(posts).map(([id, post]) => ({ id, ...post }));
-      postsArray.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      if (postsArray.length === 0) {
-        postsContainer.innerHTML = '<p>No posts yet. Be the first to post!</p>';
-        return;
-      }
-
-      postsArray.forEach(post => {
+    savedPosts.forEach(post => {
         const postDiv = document.createElement('div');
         postDiv.className = 'post';
         postDiv.innerHTML = `
-          <h2>${post.title}</h2>
-          <p><strong>Posted by:</strong> ${post.author || 'Anonymous'} on ${new Date(post.date).toLocaleString()}</p>
-          <p>${post.content}</p>
+            <h2>${post.title}</h2>
+            <p><strong>Posted by:</strong> ${post.author || 'Anonymous'} on ${post.date}</p>
+            <p>${post.content}</p>
 
-          <!-- 评论输入框 -->
-          <textarea id="comment-${post.id}" placeholder="Add a comment..."></textarea>
-          <button onclick="addComment('${post.id}')">Add Comment</button>
+            <!-- 评论输入框 -->
+            <textarea id="comment-${post.id}" placeholder="Add a comment..."></textarea>
+            <button onclick="addComment('${post.id}')">Add Comment</button>
 
-          <!-- 评论展示区域 -->
-          <div class="comments-section">
-            <h3>Comments:</h3>
-            ${post.comments ? Object.entries(post.comments).map(([commentId, comment]) => `
-              <div class="comment">
-                <p><strong>${comment.author}</strong> - ${new Date(comment.date).toLocaleString()}</p>
-                <p>${comment.content}</p>
-                ${
-                  currentUser && (currentUser.role === 'admin' || currentUser.uid === comment.authorId) ?
-                  `<button onclick="deleteComment('${post.id}', '${commentId}')">Delete</button>` :
-                  ''
-                }
-              </div>
-            `).join('') : '<p>No comments yet.</p>'}
-          </div>
+            <!-- 评论展示区域 -->
+            <div class="comments-section">
+                <h3>Comments:</h3>
+                ${post.comments && post.comments.length > 0 ? 
+                    post.comments.map(comment => `
+                        <div class="comment">
+                            <p><strong>${comment.author}</strong> - ${comment.date}</p>
+                            <p>${comment.content}</p>
+                            ${
+                                currentUser && (currentUser.role === 'admin' || currentUser.username === comment.author) ?
+                                `<button onclick="deleteComment('${post.id}', '${comment.id}')">Delete</button>` :
+                                ''
+                            }
+                        </div>
+                    `).join('') : '<p>No comments yet.</p>'}
+            </div>
         `;
         postsContainer.appendChild(postDiv);
-      });
-    })
-    .catch((error) => {
-      console.error('Error loading posts:', error);
-      postsContainer.innerHTML = '<p>Error loading posts. Please try again.</p>';
     });
 }
 
 // 发帖功能
-async function addPost() {
-  if (!currentUser) {
-    alert('You must be logged in to post.');
-    openModal('login');
-    return;
-  }
+function addPost() {
+    if (!currentUser) {
+        alert('You must be logged in to post.');
+        openModal('login');
+        return;
+    }
 
-  const title = document.getElementById('postTitle').value.trim();
-  const content = document.getElementById('postContent').value.trim();
+    const title = document.getElementById('postTitle').value.trim();
+    const content = document.getElementById('postContent').value.trim();
 
-  if (!title || !content) {
-    alert('Please fill in all fields.');
-    return;
-  }
+    if (!title || !content) {
+        alert('Please fill in all fields.');
+        return;
+    }
 
-  try {
     const newPost = {
-      title,
-      content,
-      author: currentUser.username,
-      authorId: currentUser.uid,
-      date: new Date().toISOString(),
-      comments: {}
+        id: Date.now().toString(),  // 使用时间戳生成唯一ID
+        title,
+        content,
+        date: new Date().toLocaleString(),
+        author: currentUser.username,
+        comments: []  // 删除评论功能
     };
 
-    const newPostRef = database.ref('posts').push();
-    await newPostRef.set(newPost);
+    const savedPosts = JSON.parse(localStorage.getItem('bbsPosts')) || [];
+    savedPosts.unshift(newPost);
+    localStorage.setItem('bbsPosts', JSON.stringify(savedPosts));
 
     alert('Post added successfully!');
     document.getElementById('postTitle').value = '';
     document.getElementById('postContent').value = '';
     showSection('home');
-  } catch (error) {
-    console.error('Error adding post:', error);
-    alert('Error adding post. Please try again.');
-  }
+}
+
+// 打开模态框
+function openModal(type) {
+    console.log(`Attempting to open modal: ${type}-modal`);
+    const modal = document.getElementById(`${type}-modal`);
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'block';     // 强制显示
+        modal.style.visibility = 'visible'; // 确保可见
+        modal.style.opacity = '1';        // 确保不透明
+        console.log(`${type}-modal is now visible`);
+    } else {
+        console.error(`Modal not found: ${type}-modal`);
+    }
+}
+//检查用户登陆状态
+function checkAdminAccess() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    
+    if (!currentUser || currentUser.role !== 'admin') {
+        alert('Access denied. Admins only.');
+        window.location.href = 'login.html'; // 重定向到登录页面
+    }
+}
+
+// 关闭模态框
+function closeModal(type) {
+    const modal = document.getElementById(`${type}-modal`);
+    if (modal) {
+        console.log(`Closing modal: ${type}`);
+        modal.style.display = 'none';  // 直接设置 display 为 none
+    }
 }
 
 // 注册功能
-async function register() {
-  const username = document.getElementById('registerUsername').value.trim();
-  const password = document.getElementById('registerPassword').value.trim();
-  const email = `${username}@example.com`; // 简单示例，实际应用应该让用户输入真实邮箱
+function register() {
+    const username = document.getElementById('registerUsername').value.trim();
+    const password = document.getElementById('registerPassword').value.trim();
 
-  if (!username || !password) {
-    alert('Please fill in all fields.');
-    return;
-  }
-
-  try {
-    // 检查用户名是否已存在
-    const usernameSnapshot = await database.ref('usernames').child(username).once('value');
-    if (usernameSnapshot.exists()) {
-      alert('Username already exists.');
-      return;
+    if (!username || !password) {
+        alert('Please fill in all fields.');
+        return;
     }
 
-    // 创建用户
-    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-    
-    // 存储用户信息
-    await database.ref('users/' + userCredential.user.uid).set({
-      username: username,
-      role: 'user',
-      email: email
-    });
-    
-    // 存储用户名映射，用于检查唯一性
-    await database.ref('usernames/' + username).set(userCredential.user.uid);
+    const existingUsers = JSON.parse(localStorage.getItem('bbsUsers')) || [];
+    if (existingUsers.find(user => user.username === username)) {
+        alert('Username already exists.');
+        return;
+    }
+
+    existingUsers.push({ username, password });
+    localStorage.setItem('bbsUsers', JSON.stringify(existingUsers));
 
     alert('Registration successful!');
     closeModal('register');
-  } catch (error) {
-    console.error('Registration error:', error);
-    alert('Error: ' + error.message);
-  }
+    showSection('home');
 }
 
 // 登录功能
-async function login() {
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value.trim();
-  const email = `${username}@example.com`; // 与注册一致
+function login() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
 
-  try {
-    const userCredential = await auth.signInWithEmailAndPassword(email, password);
-    
-    // 获取用户信息
-    const snapshot = await database.ref('users/' + userCredential.user.uid).once('value');
-    const userData = snapshot.val();
-    
-    currentUser = {
-      uid: userCredential.user.uid,
-      username: userData.username,
-      role: userData.role || 'user',
-      email: userData.email
-    };
-    
-    alert(`Welcome, ${currentUser.username}!`);
+    const users = JSON.parse(localStorage.getItem('bbsUsers')) || [];
+    const user = users.find(u => u.username === username && u.password === password);
+
+    if (!user) {
+        alert('Invalid username or password.');
+        return;
+    }
+
+    currentUser = user;
+    alert(`Welcome, ${username}!`);
     closeModal('login');
+    // 确保当前用户存储为全局变量
+    window.currentUser = user;
+
+    // 自动跳转到主页
     showSection('home');
-  } catch (error) {
-    console.error('Login error:', error);
-    alert('Error: ' + error.message);
-  }
 }
+
 
 // 登出功能
 function logout() {
-  auth.signOut()
-    .then(() => {
-      currentUser = null;
-      alert('You have logged out successfully.');
-      updateNavBar();
-      showSection('home');
-    })
-    .catch((error) => {
-      console.error('Logout error:', error);
-      alert('Error logging out. Please try again.');
-    });
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    alert('You have logged out successfully.');
+    updateNavBar();
+    showSection('home');
 }
+
 
 // 更新导航栏
 function updateNavBar() {
-  const loginLink = document.querySelector('a[onclick="openModal(\'login\')"]');
-  const registerLink = document.querySelector('a[onclick="openModal(\'register\')"]');
-  const logoutLink = document.querySelector('a[onclick="logout()"]');
-  const adminLoginLink = document.querySelector('a[onclick="openModal(\'adminLogin\')"]');
+    const loginLink = document.querySelector('a[onclick="openModal(\'login\')"]');
+    const registerLink = document.querySelector('a[onclick="openModal(\'register\')"]');
+    const logoutLink = document.querySelector('a[onclick="logout()"]');
 
-  if (currentUser) {
-    loginLink.style.display = 'none';
-    registerLink.style.display = 'none';
-    logoutLink.style.display = 'block';
-    
-    // 如果是管理员，显示管理员入口
-    if (currentUser.role === 'admin') {
-      adminLoginLink.style.display = 'block';
+    if (currentUser) {
+        loginLink.style.display = 'none';
+        registerLink.style.display = 'none';
+        logoutLink.style.display = 'block';
     } else {
-      adminLoginLink.style.display = 'none';
+        loginLink.style.display = 'block';
+        registerLink.style.display = 'block';
+        logoutLink.style.display = 'none';
     }
-  } else {
-    loginLink.style.display = 'block';
-    registerLink.style.display = 'block';
-    logoutLink.style.display = 'none';
-    adminLoginLink.style.display = 'none';
-  }
 }
 
-// 管理员功能
-async function adminLogin() {
-  const adminPasswordInput = document.getElementById('adminPassword').value.trim();
-  
-  if (!currentUser) {
-    alert('You must log in as a user first to access the admin panel.');
-    closeModal('adminLogin');
-    return;
-  }
-
-  // 这里简化了管理员密码验证，实际应用中应该有更安全的方式
-  if (adminPasswordInput === 'admin123') {
-    // 更新用户角色为管理员
-    try {
-      await database.ref('users/' + currentUser.uid).update({ role: 'admin' });
-      
-      // 更新当前用户信息
-      currentUser.role = 'admin';
-      
-      alert('Admin access granted!');
-      closeModal('adminLogin');
-      showSection('admin');
-    } catch (error) {
-      console.error('Error updating user role:', error);
-      alert('Error granting admin access. Please try again.');
+// 页面加载时恢复登录状态
+window.onload = function() {
+    const savedUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (savedUser) {
+        currentUser = savedUser;
     }
-  } else {
-    alert('Incorrect admin password. Please try again.');
-  }
+    updateNavBar();
+};
+
+let adminPassword = localStorage.getItem('adminPassword') || '12345';
+
+function updateAdminPassword() {
+    const newPassword = prompt('Enter new admin password:');
+    if (newPassword) {
+        adminPassword = newPassword;
+        localStorage.setItem('adminPassword', newPassword);
+        alert('Admin password updated successfully!');
+    }
 }
 
-// 加载用户列表（管理员）
+let isAdminMode = false;
+//管理员登录
+function adminLogin() {
+    // 检查当前用户是否已登录
+    if (typeof window.currentUser === 'undefined' || !window.currentUser) {
+        alert('You must log in as a user first to access the admin panel.');
+        closeModal('adminLogin');
+        return;
+    }
+
+    // 验证管理员密码
+    const adminPasswordInput = document.getElementById('adminPassword').value.trim();
+    const adminPassword = localStorage.getItem('adminPassword') || 'admin123'; // 默认密码
+
+    if (adminPasswordInput === adminPassword) {
+        alert(`Admin login successful! Welcome, ${window.currentUser.username}`);
+        closeModal('adminLogin');
+
+        // 显示管理员面板
+        document.getElementById('admin-section').classList.remove('hidden');
+        document.getElementById('home-section').classList.add('hidden');
+        document.getElementById('create-section').classList.add('hidden');
+
+        // 加载管理员功能
+        loadPostsForAdmin();
+        loadUsersForAdmin();
+
+        // 隐藏 Admin Login 按钮
+        const adminLoginButton = document.querySelector('a[onclick="openModal(\'adminLogin\')"]');
+        if (adminLoginButton) {
+            adminLoginButton.style.display = 'none';
+        }
+    } else {
+        alert('Incorrect admin password. Please try again.');
+    }
+}
+
+
+
+
+// 页面加载时验证管理员状态
+window.onload = function () {
+    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+    if (isAdmin) {
+        document.getElementById('admin-section').classList.remove('hidden');
+        document.getElementById('home-section').classList.add('hidden');
+        document.getElementById('create-section').classList.add('hidden');
+    }
+};
+
+
 function loadUsersForAdmin() {
-  const userList = document.getElementById('user-list');
-  userList.innerHTML = '<p>Loading users...</p>';
+    const userList = document.getElementById('user-list');
+    userList.innerHTML = '';
 
-  database.ref('users').once('value')
-    .then((snapshot) => {
-      const users = snapshot.val() || {};
-      userList.innerHTML = '';
-
-      Object.entries(users).forEach(([uid, user]) => {
+    users.forEach((user, index) => {
         const userDiv = document.createElement('div');
-        userDiv.className = 'user-item';
         userDiv.innerHTML = `
-          <p>
-            <strong>Username:</strong> ${user.username}<br>
-            <strong>Email:</strong> ${user.email}<br>
-            <strong>Role:</strong> ${user.role || 'user'}
-            ${
-              currentUser && currentUser.uid !== uid ?
-              `<button onclick="deleteUser('${uid}', '${user.username}')">Delete User</button>` :
-              ''
-            }
-          </p>
+            <p>
+                <strong>Username:</strong> ${user.username}<br>
+                <strong>Password:</strong> ${user.password}
+                <button onclick="deleteUser(${index})">Delete User</button>
+            </p>
         `;
         userList.appendChild(userDiv);
-      });
-    })
-    .catch((error) => {
-      console.error('Error loading users:', error);
-      userList.innerHTML = '<p>Error loading users. Please try again.</p>';
     });
 }
 
-// 删除用户（管理员）
-async function deleteUser(uid, username) {
-  if (!confirm(`Are you sure you want to delete user ${username}?`)) {
-    return;
-  }
-
-  try {
-    // 删除用户数据
-    await database.ref('users/' + uid).remove();
-    
-    // 删除用户名映射
-    await database.ref('usernames/' + username).remove();
-    
-    // 删除用户的认证信息
-    // 注意：实际应用中可能需要使用Admin SDK在服务器端执行此操作
-    alert('User deleted successfully!');
-    loadUsersForAdmin();
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    alert('Error deleting user. Please try again.');
-  }
+function deleteUser(index) {
+    if (confirm('Are you sure you want to delete this user?')) {
+        users.splice(index, 1);
+        localStorage.setItem('bbsUsers', JSON.stringify(users));
+        loadUsersForAdmin();
+    }
 }
 
-// 加载帖子列表（管理员）
+function deletePost(postId) {
+    // 获取本地存储中的所有帖子
+    const posts = JSON.parse(localStorage.getItem('bbsPosts')) || [];
+    
+    // 查找要删除的帖子
+    const postIndex = posts.findIndex(post => post.id === postId);
+    
+    if (postIndex === -1) {
+        alert('Post not found.');
+        return;
+    }
+    
+    // 删除找到的帖子
+    posts.splice(postIndex, 1);
+    
+    // 更新本地存储
+    localStorage.setItem('bbsPosts', JSON.stringify(posts));
+    
+    // 删除后刷新界面
+    loadPostsForAdmin();
+
+    // 提示用户
+    alert('Post deleted.');
+}
+
+
+
+// 管理员加载帖子列表
+
 function loadPostsForAdmin() {
-  const postsContainer = document.getElementById('post-list');
-  postsContainer.innerHTML = '<p>Loading posts...</p>';
+    const postsContainer = document.getElementById('post-list');
+    const savedPosts = JSON.parse(localStorage.getItem('bbsPosts')) || [];
+    postsContainer.innerHTML = ''; // 清空现有内容
 
-  database.ref('posts').once('value')
-    .then((snapshot) => {
-      const posts = snapshot.val() || {};
-      postsContainer.innerHTML = '';
-
-      Object.entries(posts).forEach(([postId, post]) => {
+    savedPosts.forEach(post => {
         const postDiv = document.createElement('div');
         postDiv.className = 'post';
         postDiv.innerHTML = `
-          <h2>${post.title}</h2>
-          <p><strong>Posted by:</strong> ${post.author || 'Anonymous'} on ${new Date(post.date).toLocaleString()}</p>
-          <p>${post.content}</p>
-          <button onclick="deletePost('${postId}')">Delete Post</button>
-          <h3>Comments:</h3>
-          ${
-            post.comments ? 
-            Object.entries(post.comments).map(([commentId, comment]) => `
-              <div class="comment">
-                <p><strong>${comment.author}</strong> on ${new Date(comment.date).toLocaleString()}</p>
-                <p>${comment.content}</p>
-                <button onclick="deleteComment('${postId}', '${commentId}')">Delete Comment</button>
-              </div>
-            `).join('') : 
-            '<p>No comments yet.</p>'
-          }
+            <h2>${post.title}</h2>
+            <p><strong>Posted by:</strong> ${post.author || 'Anonymous'} on ${post.date}</p>
+            <p>${post.content}</p>
+            <button onclick="deletePost('${post.id}')">Delete Post</button>
+            <h3>Comments:</h3>
         `;
+        const posts = JSON.parse(localStorage.getItem('bbsPosts')) || [];
+posts.forEach(post => {
+    if (!post.id) {
+        // 如果没有 id，使用时间戳作为 id
+        post.id = Date.now().toString();
+    }
+});
+localStorage.setItem('bbsPosts', JSON.stringify(posts));
+
+        // 加载评论
+        if (post.comments && post.comments.length > 0) {
+            const commentsList = document.createElement('div');
+            post.comments.forEach(comment => {
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'comment';
+                commentDiv.innerHTML = `
+                    <p><strong>${comment.author}</strong> on ${comment.date}</p>
+                    <p>${comment.content}</p>
+                    <button onclick="deleteComment('${post.id}', '${comment.id}')">Delete Comment</button>
+                `;
+                commentsList.appendChild(commentDiv);
+            });
+            postDiv.appendChild(commentsList);
+        } else {
+            postDiv.innerHTML += `<p>No comments yet.</p>`;
+        }
+
         postsContainer.appendChild(postDiv);
-      });
-    })
-    .catch((error) => {
-      console.error('Error loading posts:', error);
-      postsContainer.innerHTML = '<p>Error loading posts. Please try again.</p>';
     });
 }
 
-// 删除帖子（管理员）
-async function deletePost(postId) {
-  if (!confirm('Are you sure you want to delete this post?')) {
-    return;
-  }
-
-  try {
-    await database.ref('posts/' + postId).remove();
-    alert('Post deleted successfully!');
-    loadPostsForAdmin();
-  } catch (error) {
-    console.error('Error deleting post:', error);
-    alert('Error deleting post. Please try again.');
-  }
+function exitAdminMode() {
+    isAdminMode = false;
+    alert("Exited admin mode.");
+    showSection('home');
+    const adminLoginButton = document.querySelector('a[onclick="openModal(\'adminLogin\')"]');
+if (adminLoginButton) {
+    adminLoginButton.style.display = 'block';
 }
+}
+//更新评论
+function addComment(postId) {
+    if (!currentUser) {
+        alert('You must be logged in to comment.');
+        openModal('login');
+        return;
+    }
 
-// 添加评论
-async function addComment(postId) {
-  if (!currentUser) {
-    alert('You must be logged in to comment.');
-    openModal('login');
-    return;
-  }
+    const commentInput = document.getElementById(`comment-${postId}`);
+    const commentText = commentInput.value.trim();
 
-  const commentInput = document.getElementById(`comment-${postId}`);
-  const commentText = commentInput.value.trim();
+    if (!commentText) {
+        alert('Please enter a comment.');
+        return;
+    }
 
-  if (!commentText) {
-    alert('Please enter a comment.');
-    return;
-  }
+    const savedPosts = JSON.parse(localStorage.getItem('bbsPosts')) || [];
+    const post = savedPosts.find(p => p.id === postId);
 
-  try {
+    if (!post.comments) {
+        post.comments = [];
+    }
+
     const newComment = {
-      author: currentUser.username,
-      authorId: currentUser.uid,
-      content: commentText,
-      date: new Date().toISOString()
+        id: Date.now().toString(), // 唯一ID
+        author: currentUser.username,
+        content: commentText,
+        date: new Date().toLocaleString()
     };
 
-    // 添加评论到帖子
-    const commentRef = database.ref(`posts/${postId}/comments`).push();
-    await commentRef.set(newComment);
+    post.comments.push(newComment);
+    localStorage.setItem('bbsPosts', JSON.stringify(savedPosts));
 
     alert('Comment added successfully!');
-    commentInput.value = '';
-    loadPosts(); // 重新加载帖子
-  } catch (error) {
-    console.error('Error adding comment:', error);
-    alert('Error adding comment. Please try again.');
-  }
+    loadPosts(); // 重新加载帖子和评论
 }
+//删除评论
+function deleteComment(postId, commentId) {
+    const savedPosts = JSON.parse(localStorage.getItem('bbsPosts')) || [];
+    const post = savedPosts.find(p => p.id === postId);
 
-// 删除评论
-async function deleteComment(postId, commentId) {
-  if (!currentUser) {
-    alert('You must be logged in to delete comments.');
-    return;
-  }
+    if (!post || !post.comments) {
+        alert('No comments found for this post.');
+        return;
+    }
 
-  // 检查权限
-  const postSnapshot = await database.ref(`posts/${postId}`).once('value');
-  const post = postSnapshot.val();
-  
-  const comment = post.comments[commentId];
-  
-  if (currentUser.role !== 'admin' && currentUser.uid !== comment.authorId) {
-    alert('You do not have permission to delete this comment.');
-    return;
-  }
+    const commentIndex = post.comments.findIndex(c => c.id === commentId);
 
-  if (!confirm('Are you sure you want to delete this comment?')) {
-    return;
-  }
+    if (commentIndex === -1) {
+        alert('Comment not found.');
+        return;
+    }
 
-  try {
-    await database.ref(`posts/${postId}/comments/${commentId}`).remove();
-    alert('Comment deleted successfully!');
-    loadPosts(); // 重新加载帖子
-  } catch (error) {
-    console.error('Error deleting comment:', error);
-    alert('Error deleting comment. Please try again.');
-  }
-}
+    // 删除评论
+    post.comments.splice(commentIndex, 1);
+    localStorage.setItem('bbsPosts', JSON.stringify(savedPosts));
 
-// 模态框功能
-function openModal(type) {
-  const modal = document.getElementById(`${type}-modal`);
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.style.display = 'block';
-  }
-}
-
-function closeModal(type) {
-  const modal = document.getElementById(`${type}-modal`);
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-// 退出管理员模式
-function exitAdminMode() {
-  showSection('home');
+    alert('Comment deleted successfully.');
+    loadPostsForAdmin(); // 重新加载管理员界面
 }
